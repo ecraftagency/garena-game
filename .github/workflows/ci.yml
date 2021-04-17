@@ -38,7 +38,7 @@ jobs:
           context: ./
           file: ./src/main/docker/Dockerfile.jvm
           push: true
-          tags: ecrafteventagency/ldb2_service:1.0
+          tags: ecrafteventagency/garena_game:1.0
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
