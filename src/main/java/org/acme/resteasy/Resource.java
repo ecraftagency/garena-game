@@ -30,7 +30,7 @@ public class Resource {
     rxCommand = connection.reactive();
   }
 
-  @Route(methods = HttpMethod.GET, regex = ".*/rqg")
+  @Route(methods = HttpMethod.GET, regex = ".*/newgame")
   void newGame(RoutingContext ctx) {
     String id  = ctx.request().getParam("id");
     long curMs = System.currentTimeMillis();
