@@ -30,6 +30,11 @@ public class Resource {
     rxCommand = connection.reactive();
   }
 
+  @Route(methods = HttpMethod.GET, regex = ".*/version")
+  void version(RoutingContext ctx) {
+    ctx.response().end("1.0");
+  }
+
   @Route(methods = HttpMethod.GET, regex = ".*/newgame")
   void newGame(RoutingContext ctx) {
     String id  = ctx.request().getParam("id");
