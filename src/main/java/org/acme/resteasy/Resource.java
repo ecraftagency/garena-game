@@ -58,12 +58,10 @@ public class Resource {
           }
         }
         catch (Exception e) {
-          System.out.println("new user" + id);
           updateTurn(ctx, curMs, id, 3);
         }
       })
       .doOnError(err -> { //todo don't have turn:id key
-        System.out.println("new user:" + id);
         updateTurn(ctx, curMs, id, 3);
       }).subscribe();
   }
