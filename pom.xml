@@ -65,13 +65,14 @@
       <artifactId>quarkus-container-image-jib</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-scheduler</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.lettuce</groupId>
       <artifactId>lettuce-core</artifactId>
       <version>6.1.1.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>com.ibm.etcd</groupId>
+      <artifactId>etcd-java</artifactId>
+      <version>0.0.18</version>
     </dependency>
   </dependencies>
   <build>
