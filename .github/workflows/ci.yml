@@ -20,7 +20,7 @@ jobs:
       - name: Build Settings
         uses: whelk-io/maven-settings-xml-action@v14
         with:
-          servers: '[{ "id": "github", "username": "ecraft.eventagency@gmail.com", "password": "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" }]'
+          servers: '[{ "id": "github", "username": "ecraft.eventagency@gmail.com", "password": "${{ secrets.MAVEN_ACCESS_TOKEN }}" }]'
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
