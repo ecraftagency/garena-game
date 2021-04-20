@@ -94,6 +94,9 @@ public class Resource {
               cache.remove(lastCache);
             lastCache = resp;
           }
+          else {
+            ctx.response().setStatusCode(401).end();
+          }
         })
         .doOnError(err -> ctx.response().setStatusCode(401).end()).subscribe();
     }
