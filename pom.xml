@@ -22,7 +22,7 @@
   <repositories>
     <repository>
       <id>github</id>
-      <url>https://maven.pkg.github.com/ecraftagency/*</url>
+      <url>https://maven.pkg.github.com/ecraftagency</url>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>
