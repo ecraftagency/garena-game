@@ -17,6 +17,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
+      - name: Build Settings
+        uses: whelk-io/maven-settings-xml-action@v14
+        with:
+          repositories: '[{ "id": "github", "url": "https://maven.pkg.github.com/ecraftagency/*" }]'
+          servers: '[{ "id": "github", "username": "ecraft.eventagency@gmail.com", "password": "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" }]'
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
