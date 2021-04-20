@@ -18,6 +18,17 @@
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
   </properties>
+
+  <repositories>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/ecraftagency/*</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -157,6 +168,12 @@
       <properties>
         <quarkus.package.type>native</quarkus.package.type>
       </properties>
+    </profile>
+    <profile>
+      <id>github</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
     </profile>
   </profiles>
 </project>
