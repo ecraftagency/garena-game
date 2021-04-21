@@ -214,36 +214,34 @@ public class Resource {
   public void gameData(RoutingContext ctx) {
     String id     = ctx.request().getParam("id");
     String token  = ctx.request().getParam("token");
-    verify(id, token).subscribe(gameData -> {
+    verify(id, token).doOnSuccess(gameData -> {
       if (gameData != null)
         handle(id, "gameData", ctx, gameData);
       else
         ctx.response().setStatusCode(401).end();
-    });
+    }).subscribe();
   }
 
   @Route(methods = HttpMethod.GET, regex = ".*/newgame/v2")
   public void newGameV2(RoutingContext ctx) {
     String id     = ctx.request().getParam("id");
     String token  = ctx.request().getParam("token");
-    verify(id, token).subscribe(gameData -> {
+    verify(id, token).doOnSuccess(gameData -> {
       if (gameData != null)
         handle(id, "newGame", ctx, gameData);
       else
         ctx.response().setStatusCode(401).end();
-    });
+    }).subscribe();
   }
 
   public Mono<GameData> verify(String id, String token) {
-    return Mono.create(sink -> gameService.get(id + ":game")
-            .doOnSuccess(gameData -> {
-              if (token.equals(gameData.getToken()))
-                sink.success(gameData);
-              else
-                sink.success(null);
-            })
-            .doOnError(err -> sink.success(null))
-            .subscribe());
+    return Mono.create(sink -> gameService.get(id + ":game").doOnSuccess(gameData -> {
+      if (gameData != null && token.equals(gameData.getToken())) {
+        sink.success(gameData);
+      }
+      else
+        sink.success(null);
+    }).subscribe());
   }
 
   public void handle(String id, String command, RoutingContext ctx, GameData gameData) {

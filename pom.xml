@@ -83,7 +83,7 @@
     <dependency>
       <groupId>com.zen</groupId>
       <artifactId>garena_lib</artifactId>
-      <version>1.0.32</version>
+      <version>1.0.35</version>
     </dependency>
     <dependency>
       <groupId>io.lettuce</groupId>
