@@ -1,7 +1,10 @@
 package org.acme.resteasy;
 
+import com.ibm.etcd.client.EtcdClient;
+import com.ibm.etcd.client.KvStoreClient;
 import com.zen.kv.AsyncKVService;
-import com.zen.kv.SimpleKVService;
+import com.zen.kv.impl.*;
+import com.zen.model.GameData;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.reactive.RedisReactiveCommands;
@@ -10,9 +13,11 @@ import io.quarkus.vertx.web.Route;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import reactor.core.publisher.Mono;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,11 +33,12 @@ public class Resource {
   String ldbName;
   @ConfigProperty(name = "etcd.hosts")
   String etcdHost;
+  @ConfigProperty(name = "quarkus.redis.hosts")
+  String redisHost;
 
   final int dailyTurn = 3;
 
-  @ConfigProperty(name = "quarkus.redis.hosts")
-  String                                redisConn;
+
   RedisClient                           redisClient;
   RedisReactiveCommands<String, String> rxCommand;
   AsyncKVService<String>                kvService;
@@ -43,12 +49,30 @@ public class Resource {
   String                lastCache     = "";
   int                   maxCacheSize  = 1000000;
 
+  AsyncKVService<GameData> gameService;
+  AsyncKVService<GameData> cacheGame;
+  AsyncKVService<GameData> persistentGame;
+
+  KvStoreClient etcdClient;
+  RedisClient   rClient;
+
   void serviceStartup(@Observes StartupEvent ev) {
-    redisClient = RedisClient.create(redisConn);
+    redisClient     = RedisClient.create(redisHost);
+    etcdClient      = EtcdClient.forEndpoint(etcdHost, 2379).withPlainText().build();
+
     StatefulRedisConnection<String, String> connection = redisClient.connect();
     rxCommand = connection.reactive();
-    kvService = new SimpleKVService(etcdHost);
+    kvService = new SimpleKVService(etcdClient);
     cache = new ConcurrentHashMap<>();
+
+
+    //v2
+    rClient = RedisClient.create(redisHost);
+    StatefulRedisConnection<String, ByteBuffer> conn = rClient.connect(new ByteBufferCodec());
+
+    persistentGame     = new EtcdKvSvc<>(etcdClient, GameData.parser());
+    cacheGame          = new RedisKvSvc<>(conn, GameData.parser());
+    gameService        = new CompositeKVSvc<>(cacheGame, persistentGame);
   }
 
   @Route(methods = HttpMethod.GET, regex = ".*/newgame")
@@ -181,5 +205,81 @@ public class Resource {
       buffer.append((char) randomLimitedInt);
     }
     return buffer.toString();
+  }
+
+
+  ////////V2//////
+
+  @Route(methods = HttpMethod.GET, regex = ".*/data/v2")
+  public void gameData(RoutingContext ctx) {
+    String id     = ctx.request().getParam("id");
+    String token  = ctx.request().getParam("token");
+    verify(id, token).subscribe(gameData -> {
+      if (gameData != null)
+        handle(id, "gameData", ctx, gameData);
+      else
+        ctx.response().setStatusCode(401).end();
+    });
+  }
+
+  @Route(methods = HttpMethod.GET, regex = ".*/newgame/v2")
+  public void newGameV2(RoutingContext ctx) {
+    String id     = ctx.request().getParam("id");
+    String token  = ctx.request().getParam("token");
+    verify(id, token).subscribe(gameData -> {
+      if (gameData != null)
+        handle(id, "newGame", ctx, gameData);
+      else
+        ctx.response().setStatusCode(401).end();
+    });
+  }
+
+  public Mono<GameData> verify(String id, String token) {
+    return Mono.create(sink -> gameService.get(id + ":game")
+            .doOnSuccess(gameData -> {
+              if (token.equals(gameData.getToken()))
+                sink.success(gameData);
+              else
+                sink.success(null);
+            })
+            .doOnError(err -> sink.success(null))
+            .subscribe());
+  }
+
+  public void handle(String id, String command, RoutingContext ctx, GameData gameData) {
+    switch (command) {
+      case "gameData":
+        ctx.response().putHeader("Content-Type", "text/json").end(AsyncKVService.json(gameData));
+        return;
+      case "newGame":
+        processNewGame(id, ctx, gameData);
+        return;
+      default:
+        ctx.response().setStatusCode(401).end();
+    }
+  }
+
+  public void processNewGame(String id, RoutingContext ctx, GameData gameData) {
+    long curMs    = System.currentTimeMillis();
+    long lastGame = gameData.getLastGame();
+    int turn      = gameData.getTurn();
+
+    if (curMs - lastGame > 60*1000)
+      turn = 3;
+    turn--;
+
+    if (turn >= 0) {
+      String session = rand(10);
+      GameData adjust = GameData.newBuilder(gameData).setTurn(turn).setLastGame(curMs).setSession(session).build();
+
+      gameService.put(id + ":game", adjust);
+      ctx.response().putHeader("Content-Type", "text/json").end(AsyncKVService.json(adjust));
+    }
+    else {
+      GameData adjust = GameData.newBuilder(gameData).setTurn(turn).setSession("").build();
+
+      gameService.put(id + ":game", adjust);
+      ctx.response().putHeader("Content-Type", "text/json").end(AsyncKVService.json(adjust));
+    }
   }
 }
