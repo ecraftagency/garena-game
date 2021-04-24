@@ -34,8 +34,8 @@ public class Resource {
   @ConfigProperty(name = "quarkus.redis.hosts")
   String redisHost;
 
-  final int dailyTurn = 3;
-  final int refreshInterval = 60*1000;
+  final int dailyTurn = 10;
+  final int refreshInterval = 5*60*1000;
   final int rewardTurn = 5;
 
   AsyncKVService<GameData> gameService;
@@ -108,7 +108,7 @@ public class Resource {
         GameData.Builder dgBD = GameData.newBuilder(gameData);
         long curMs = System.currentTimeMillis();
         if (curMs - dgBD.getLastGame() > refreshInterval) { //todo new day
-          dgBD.setTurn(3);
+          dgBD.setTurn(dailyTurn);
           dgBD.setLastGame(curMs);
         }
         sink.success(dgBD);
